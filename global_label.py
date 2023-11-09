@@ -1,3 +1,6 @@
+coco_dataset_dir = 'annotations'
+coco_data_types = ['val2017', 'train2017']
+coco_contributes_jbl_path = 'coco_contributes_eccv_version.jbl'
 coco_contributes_attr_name = ['standing', 'sitting', 'laying', 'walking', 'watching / looking',
                               'eating', 'waiting', 'moving', 'playing', 'sleeping', 'working', 'running', 'hiding',
                               'riding', 'drinking', 'swimming', 'smiling', 'jumping', 'flying', 'traveling', 'enjoying',

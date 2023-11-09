@@ -1,6 +1,7 @@
 import json
 import os
 from sklearn.externals import joblib
+from global_label import coco_dataset_dir, coco_data_types, coco_contributes_jbl_path
 
 
 class CountResult:
@@ -48,11 +49,9 @@ def get_hide_label(coco_contributes_entity):
 
 
 if __name__ == '__main__':
-    data_types = ['val2017', 'train2017']
     coco_data = {}
     # Change this to location where COCO dataset lives
-    coco_dataset_dir = 'annotations'
-    for dt in data_types:
+    for dt in coco_data_types:
         annFile = os.path.join(coco_dataset_dir, 'instances_%s.json' % dt)
         with open(annFile, 'r') as f:
             tmp = json.load(f)
@@ -63,6 +62,6 @@ if __name__ == '__main__':
                 coco_data['annotations'] += tmp['annotations']
 
     # Load COCO Attributes
-    coco_contributes = joblib.load('coco_contributes_eccv_version.jbl')
+    coco_contributes = joblib.load(coco_contributes_jbl_path)
     # Index of example instance to print
     count(coco_contributes, coco_data)
