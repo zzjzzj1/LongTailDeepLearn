@@ -24,9 +24,9 @@ def get_img_num_per_cls(img_max, imb_factor, cls_num=100):
     return img_num_per_cls
 
 
-def solve_map(coco_entity, coco_contributes_entity):
+def solve_map(coco_entity, coco_contributes_entity, count_temp):
     category_id = get_category_id(coco_entity)
-    hide_label = get_hide_label(coco_contributes_entity)
+    hide_label = get_hide_label(coco_contributes_entity, count_temp)
     return CountResult(category_id, hide_label)
 
 
@@ -64,9 +64,10 @@ def split_count(data_set):
             hide_label = item.hide_label
             for j in range(len(hide_label)):
                 wait_count_dict = count_hide_label[j]
-                if hide_label[j] not in wait_count_dict:
-                    wait_count_dict[hide_label[j]] = 0
-                wait_count_dict[hide_label[j]] += 1
+                for hide_label_id in hide_label[j]:
+                    if hide_label_id not in wait_count_dict:
+                        wait_count_dict[hide_label_id] = 0
+                    wait_count_dict[hide_label_id] += 1
     count_result = {}
     for key in count_hide_label:
         temp = [count_hide_label[key][hide_label_id] for hide_label_id in count_hide_label[key]]
@@ -83,15 +84,19 @@ def count(contributes, coco_old_data):
     for coco_entity in coco_old_data['annotations']:
         coco_annotations_dict[coco_entity['id']] = coco_entity
     data_set = {}
+    count_temp = [0 for i in range(len(global_var.coco_contributes_attr_name))]
     for key in coco_attr_vecs:
         coco_id = contributes['patch_id_to_ann_id'][key]
         # judge coco_dataset hava enhance attributes
         if coco_id not in coco_annotations_dict:
             continue
-        item = solve_map(coco_annotations_dict[coco_id], coco_attr_vecs[key])
+        item = solve_map(coco_annotations_dict[coco_id], coco_attr_vecs[key], count_temp)
         if item.main_label not in data_set:
             data_set[item.main_label] = []
         data_set[item.main_label].append(item)
+    count_temp.sort()
+    print(count_temp)
+    print('test old')
     split_count(data_set)
 
 
@@ -99,17 +104,17 @@ def get_category_id(coco_entity):
     return coco_entity['category_id']
 
 
-def get_hide_label(coco_contributes_entity):
+def get_hide_label(coco_contributes_entity, count_temp):
     contributes_attr_type = global_var.coco_contributes_attr_type
     record = {}
     for i in range(global_var.coco_contributes_hide_type_number):
-        record[i] = [None, -1]
+        record[i] = []
     for index, item in enumerate(coco_contributes_entity):
         temp = record[contributes_attr_type[index]]
-        if temp[1] < item:
-            temp[0] = index
-            temp[1] = item
-    return [record[i][0] for i in range(global_var.coco_contributes_hide_type_number)]
+        if item > 0.5:
+            temp.append(index)
+            count_temp[index] += 1
+    return [record[i] for i in range(global_var.coco_contributes_hide_type_number)]
 
 
 if __name__ == '__main__':
