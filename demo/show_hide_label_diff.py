@@ -1,6 +1,7 @@
 import json
 import os
 from sklearn.externals import joblib
+from random import sample
 
 import global_var
 from global_var import coco_dataset_dir, coco_data_types, coco_contributes_jbl_path
@@ -29,19 +30,69 @@ def solve_map(coco_entity, coco_contributes_entity):
     return CountResult(category_id, hide_label)
 
 
+def split_count(data_set):
+    """
+    data_set look like
+    {
+        1: [CountResult, CountResult],
+        2: [CountResult, CountResult, CountResult, ...., CountResult]
+        .
+        .
+        .
+        29: [CountResult, CountResult, CountResult, ...., CountResult]
+    }
+    """
+    image_max = 0
+    type_group_data = []
+    for key in data_set:
+        image_max += len(data_set[key])
+        type_group_data.append([key, len(data_set[key])])
+    type_group_data.sort(key=lambda x: x[1], reverse=True)
+    long_tail_mock = get_img_num_per_cls(type_group_data[0][1] / 9, 1.0 / 100, len(data_set))
+    for i in range(len(data_set)):
+        # judge real dateset have more data than want mock?
+        if long_tail_mock[i] > type_group_data[i][1]:
+            print('error!')
+    count_hide_label = {}
+    for i in range(global_var.coco_contributes_hide_type_number):
+        count_hide_label[i] = {}
+    for i in range(len(long_tail_mock)):
+        key = type_group_data[i][0]
+        # random choice data and count hide label
+        data_choice = sample(data_set[key], long_tail_mock[i])
+        for item in data_choice:
+            hide_label = item.hide_label
+            for j in range(len(hide_label)):
+                wait_count_dict = count_hide_label[j]
+                if hide_label[j] not in wait_count_dict:
+                    wait_count_dict[hide_label[j]] = 0
+                wait_count_dict[hide_label[j]] += 1
+    count_result = {}
+    for key in count_hide_label:
+        temp = [count_hide_label[key][hide_label_id] for hide_label_id in count_hide_label[key]]
+        temp.sort(reverse=True)
+        count_result[key] = temp
+    for key in count_result:
+        print(count_result[key])
+
+
 def count(contributes, coco_old_data):
     coco_attr_vecs = contributes['ann_vecs']
     coco_annotations_dict = {}
     # get map relation
     for coco_entity in coco_old_data['annotations']:
         coco_annotations_dict[coco_entity['id']] = coco_entity
-    ans = {}
+    data_set = {}
     for key in coco_attr_vecs:
         coco_id = contributes['patch_id_to_ann_id'][key]
         # judge coco_dataset hava enhance attributes
         if coco_id not in coco_annotations_dict:
             continue
         item = solve_map(coco_annotations_dict[coco_id], coco_attr_vecs[key])
+        if item.main_label not in data_set:
+            data_set[item.main_label] = []
+        data_set[item.main_label].append(item)
+    split_count(data_set)
 
 
 def get_category_id(coco_entity):
